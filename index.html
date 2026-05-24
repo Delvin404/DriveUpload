@@ -3,113 +3,605 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Upload Files</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Squish & Send!</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0e0e0f; --surface: #161617; --surface2: #1e1e20;
-    --border: rgba(255,255,255,0.08); --border-hover: rgba(255,255,255,0.18);
-    --accent: #7c6af7; --accent-glow: rgba(124,106,247,0.15);
-    --text: #f0eff5; --muted: #888790; --success: #4ade80; --error: #f87171;
-    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
-  }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; }
-  .grain { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.03; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E"); background-size: 128px; }
-  .wrapper { position: relative; z-index: 1; width: 100%; max-width: 520px; }
-  .header { text-align: center; margin-bottom: 2.5rem; }
-  .logo { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; background: var(--accent-glow); border: 1px solid rgba(124,106,247,0.3); border-radius: 14px; margin-bottom: 1.2rem; }
-  .logo svg { width: 24px; height: 24px; }
-  h1 { font-size: 1.6rem; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-  .subtitle { font-size: 0.9rem; color: var(--muted); font-weight: 300; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 2rem; }
-  .drop-zone { border: 1.5px dashed var(--border-hover); border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative; }
-  .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: var(--accent-glow); }
-  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .drop-icon { width: 40px; height: 40px; margin: 0 auto 1rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-  .drop-icon svg { width: 20px; height: 20px; stroke: var(--muted); }
-  .drop-label { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
-  .drop-label strong { color: var(--accent); font-weight: 500; }
-  .file-list { margin-top: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
-  .file-item { display: flex; align-items: center; gap: 10px; padding: 0.65rem 0.85rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem; animation: slideIn 0.2s ease; }
-  @keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-  .file-icon { width: 28px; height: 28px; background: var(--accent-glow); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .file-icon svg { width: 13px; height: 13px; stroke: var(--accent); }
-  .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-family: var(--mono); }
-  .file-size { color: var(--muted); flex-shrink: 0; font-family: var(--mono); font-size: 0.75rem; }
-  .remove-btn { background: none; border: none; cursor: pointer; color: var(--muted); padding: 2px; display: flex; align-items: center; transition: color 0.15s; flex-shrink: 0; }
-  .remove-btn:hover { color: var(--error); }
-  .remove-btn svg { width: 14px; height: 14px; stroke: currentColor; }
-  .progress-bar-wrap { margin-top: 0.5rem; height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; display: none; }
-  .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s ease; width: 0%; }
-  .submit-btn { margin-top: 1.25rem; width: 100%; padding: 0.85rem; background: var(--accent); color: #fff; border: none; border-radius: 11px; font-family: var(--sans); font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: opacity 0.2s, transform 0.1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-  .submit-btn:hover { opacity: 0.9; } .submit-btn:active { transform: scale(0.99); } .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .submit-btn svg { width: 16px; height: 16px; stroke: currentColor; }
-  .status-msg { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.85rem; display: none; align-items: center; gap: 8px; }
-  .status-msg.success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25); color: var(--success); display: flex; }
-  .status-msg.error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.25); color: var(--error); display: flex; }
-  .status-msg svg { width: 16px; height: 16px; stroke: currentColor; flex-shrink: 0; }
-  .footer { text-align: center; margin-top: 1.75rem; font-size: 0.78rem; color: var(--muted); }
-  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --pink: #ff6eb4;
+  --yellow: #ffd93d;
+  --blue: #6bcbff;
+  --purple: #c084fc;
+  --green: #6ee7b7;
+  --orange: #ffb347;
+  --dark: #1a1a2e;
+  --white: #fffbfe;
+}
+
+body {
+  background: #fff0f8;
+  font-family: 'Nunito', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════
+   ANIMATED BACKGROUND
+══════════════════════════════ */
+
+.bg-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Polka dots */
+.bg-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #ffb3d9 2px, transparent 2px);
+  background-size: 32px 32px;
+  opacity: 0.4;
+  animation: bgDrift 20s linear infinite;
+}
+
+@keyframes bgDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 64px 64px; }
+}
+
+/* Floating blobs */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  z-index: 0;
+  pointer-events: none;
+  animation: blobFloat linear infinite;
+}
+.blob1 { width:180px; height:180px; background:#ffd6ec; top:5%; left:3%; animation-duration:14s; animation-delay:0s; }
+.blob2 { width:120px; height:120px; background:#d6f0ff; top:20%; right:5%; animation-duration:11s; animation-delay:-4s; }
+.blob3 { width:150px; height:150px; background:#ffe8a0; bottom:15%; left:8%; animation-duration:16s; animation-delay:-8s; }
+.blob4 { width:100px; height:100px; background:#e9d5ff; bottom:10%; right:10%; animation-duration:12s; animation-delay:-2s; }
+.blob5 { width:80px; height:80px; background:#d1fae5; top:50%; left:1%; animation-duration:10s; animation-delay:-6s; }
+
+@keyframes blobFloat {
+  0%   { transform: translateY(0px) scale(1) rotate(0deg); }
+  25%  { transform: translateY(-30px) scale(1.05) rotate(3deg); }
+  50%  { transform: translateY(-15px) scale(0.97) rotate(-2deg); }
+  75%  { transform: translateY(-40px) scale(1.03) rotate(2deg); }
+  100% { transform: translateY(0px) scale(1) rotate(0deg); }
+}
+
+/* Floating sparkle stars */
+.sparkle {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  animation: sparkleFly linear infinite;
+  opacity: 0;
+}
+
+@keyframes sparkleFly {
+  0%   { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+}
+
+/* ══════════════════════════════
+   PAGE ENTRY ANIMATIONS
+══════════════════════════════ */
+.wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  animation: wrapperEntry 0.8s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+@keyframes wrapperEntry {
+  0%   { opacity: 0; transform: translateY(60px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  animation: headerDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+}
+
+@keyframes headerDrop {
+  0%   { opacity: 0; transform: translateY(-40px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════════════════════════
+   LOGO BADGE
+══════════════════════════════ */
+.logo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--yellow);
+  border: 3px solid #222;
+  border-radius: 99px;
+  padding: 7px 18px 7px 10px;
+  box-shadow: 4px 4px 0 #222;
+  margin-bottom: 1rem;
+  animation: wiggle 3s ease-in-out infinite 1s;
+}
+
+@keyframes wiggle {
+  0%,100% { transform: rotate(0deg); }
+  20%      { transform: rotate(-3deg); }
+  40%      { transform: rotate(3deg); }
+  60%      { transform: rotate(-2deg); }
+  80%      { transform: rotate(2deg); }
+}
+
+.logo-circle {
+  width: 30px; height: 30px;
+  background: var(--pink);
+  border: 2.5px solid #222;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+.logo-text {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1rem;
+  color: #222;
+}
+
+h1 {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 2.5rem;
+  color: #222;
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+  animation: titlePop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.2s both;
+}
+@keyframes titlePop {
+  0%   { opacity: 0; transform: scale(0.8); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+h1 .c1 { color: var(--pink); }
+h1 .c2 { color: var(--blue); display: inline-block; animation: bounce 2s ease-in-out infinite 0.5s; }
+@keyframes bounce {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+.subtitle { font-size: 0.92rem; color: #999; font-weight: 700; }
+
+/* bouncing dots row */
+.dot-row { display: flex; justify-content: center; gap: 8px; margin: 0.8rem 0 1.2rem; }
+.bdot {
+  width: 12px; height: 12px; border-radius: 50%; border: 2px solid #222;
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+.bdot:nth-child(1) { background: var(--pink);   animation-delay: 0s; }
+.bdot:nth-child(2) { background: var(--yellow);  animation-delay: 0.15s; }
+.bdot:nth-child(3) { background: var(--blue);    animation-delay: 0.3s; }
+.bdot:nth-child(4) { background: var(--purple);  animation-delay: 0.45s; }
+.bdot:nth-child(5) { background: var(--green);   animation-delay: 0.6s; }
+@keyframes dotBounce {
+  0%,80%,100% { transform: translateY(0); }
+  40%         { transform: translateY(-10px); }
+}
+
+/* ══════════════════════════════
+   CARD
+══════════════════════════════ */
+.card {
+  background: #fff;
+  border: 3px solid #222;
+  border-radius: 28px;
+  padding: 1.75rem;
+  box-shadow: 7px 7px 0 #222;
+  animation: cardEntry 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.3s both;
+}
+@keyframes cardEntry {
+  0%   { opacity: 0; transform: translateY(30px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ══════════════════════════════
+   DROP ZONE
+══════════════════════════════ */
+.drop-zone {
+  border: 3px dashed #ffb3d9;
+  border-radius: 20px;
+  padding: 2.2rem 1.5rem 1.8rem;
+  text-align: center;
+  cursor: pointer;
+  background: #fff9fc;
+  transition: all 0.2s;
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--pink);
+  background: #fff0f8;
+  transform: scale(1.01) rotate(-0.5deg);
+}
+.drop-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+
+/* Hand-drawn cloud using CSS only */
+.cloud-wrap {
+  position: relative;
+  width: 80px; height: 60px;
+  margin: 0 auto 1rem;
+  animation: cloudBob 3s ease-in-out infinite;
+}
+@keyframes cloudBob {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.cloud-base {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 80px; height: 34px;
+  background: var(--purple);
+  border: 3px solid #222;
+  border-radius: 99px;
+  box-shadow: 3px 3px 0 #222;
+}
+.cloud-puff1 {
+  position: absolute;
+  width: 36px; height: 36px;
+  background: var(--purple);
+  border: 3px solid #222;
+  border-radius: 50%;
+  bottom: 18px; left: 8px;
+}
+.cloud-puff2 {
+  position: absolute;
+  width: 28px; height: 28px;
+  background: var(--purple);
+  border: 3px solid #222;
+  border-radius: 50%;
+  bottom: 24px; left: 34px;
+}
+.cloud-arrow {
+  position: absolute;
+  bottom: 6px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  animation: arrowPulse 1.2s ease-in-out infinite;
+}
+@keyframes arrowPulse {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-4px); }
+}
+
+.drop-title {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1.15rem; color: #222; margin-bottom: 0.3rem;
+}
+.drop-sub { font-size: 0.82rem; color: #bbb; font-weight: 700; }
+.drop-sub strong { color: var(--pink); }
+
+.type-pills {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 6px; margin-top: 0.85rem;
+}
+.tpill {
+  font-size: 0.7rem; font-weight: 800;
+  padding: 4px 10px; border-radius: 99px;
+  border: 2.5px solid #222;
+  box-shadow: 2px 2px 0 #222;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  display: flex; align-items: center; gap: 4px;
+}
+.tp-a { background: #ffecf5; color: #c0006a; }
+.tp-b { background: #e8f5ff; color: #005fa3; }
+.tp-c { background: #e8fdf5; color: #006645; }
+.tp-d { background: #fffbdd; color: #8a6000; }
+
+/* ══════════════════════════════
+   STATS ROW
+══════════════════════════════ */
+.stats-row { display: none; gap: 8px; margin-top: 1rem; }
+.stat-box {
+  flex: 1; border: 2.5px solid #222; border-radius: 14px;
+  padding: 0.6rem 0.8rem; box-shadow: 3px 3px 0 #222;
+  display: flex; align-items: center; gap: 8px;
+}
+.sb-pink { background: #fff0f8; }
+.sb-blue { background: #f0f8ff; }
+.stat-ico { font-size: 22px; }
+.sb-pink .stat-ico { color: var(--pink); }
+.sb-blue .stat-ico { color: var(--blue); }
+.stat-lbl { font-size: 0.65rem; color: #aaa; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.stat-num { font-family: 'Fredoka One', sans-serif; font-size: 1.15rem; color: #222; }
+
+/* ══════════════════════════════
+   FILE LIST
+══════════════════════════════ */
+.file-list { margin-top: 1rem; display: flex; flex-direction: column; gap: 6px; }
+
+.file-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 0.55rem 0.75rem;
+  border: 2.5px solid #222; border-radius: 12px; background: #fff;
+  box-shadow: 2px 2px 0 #222;
+  animation: popIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.75) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.ficon {
+  width: 28px; height: 28px; border-radius: 8px; border: 2px solid #222;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-size: 14px;
+}
+.fi-img { background: #fffadd; } .fi-img span { color: #d4900a; }
+.fi-vid { background: #ffecf5; } .fi-vid span { color: #c0006a; }
+.fi-doc { background: #e8f5ff; } .fi-doc span { color: #005fa3; }
+.fi-zip { background: #e8fdf5; } .fi-zip span { color: #006645; }
+.fi-def { background: #f0edff; } .fi-def span { color: #6d28d9; }
+
+.fname { flex: 1; font-size: 0.78rem; font-weight: 800; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fsize { font-size: 0.7rem; font-weight: 800; color: #bbb; flex-shrink: 0; }
+
+.remove-btn {
+  background: var(--pink); border: 2px solid #222;
+  color: #fff; width: 22px; height: 22px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; font-size: 13px; font-weight: 900;
+  box-shadow: 1px 1px 0 #222; transition: transform 0.12s;
+  line-height: 1;
+}
+.remove-btn:hover { transform: scale(1.2) rotate(10deg); }
+
+/* ══════════════════════════════
+   PROGRESS
+══════════════════════════════ */
+.progress-wrap {
+  margin-top: 0.85rem; height: 12px;
+  background: #ffe8f4; border: 2.5px solid #222; border-radius: 99px;
+  overflow: hidden; display: none; box-shadow: 2px 2px 0 #222;
+}
+.progress-fill {
+  height: 100%;
+  background: repeating-linear-gradient(90deg,
+    var(--pink) 0,var(--pink) 20px,
+    var(--yellow) 20px,var(--yellow) 40px,
+    var(--blue) 40px,var(--blue) 60px,
+    var(--purple) 60px,var(--purple) 80px
+  );
+  background-size: 80px 100%;
+  animation: stripeMove 0.5s linear infinite;
+  border-radius: 99px; transition: width 0.35s ease; width: 0%;
+}
+@keyframes stripeMove { to { background-position: 80px 0; } }
+
+/* ══════════════════════════════
+   UPLOAD BUTTON
+══════════════════════════════ */
+.upload-btn {
+  margin-top: 1.1rem; width: 100%; padding: 0.95rem;
+  background: var(--pink); color: #fff;
+  border: 3px solid #222; border-radius: 18px;
+  font-family: 'Fredoka One', sans-serif; font-size: 1.25rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+  box-shadow: 5px 5px 0 #222;
+  transition: transform 0.12s, box-shadow 0.12s;
+  letter-spacing: 0.03em;
+}
+.upload-btn:hover:not(:disabled) { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 #222; }
+.upload-btn:active:not(:disabled) { transform: translate(3px,3px); box-shadow: 2px 2px 0 #222; }
+.upload-btn:disabled { background: #e0e0e0; color: #aaa; box-shadow: 3px 3px 0 #ccc; border-color: #ccc; cursor: not-allowed; }
+
+.spinner {
+  width: 20px; height: 20px;
+  border: 3px solid rgba(255,255,255,0.4); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════
+   STATUS MESSAGES
+══════════════════════════════ */
+.status-msg {
+  margin-top: 1rem; padding: 1rem 1.1rem; border-radius: 14px;
+  font-size: 0.9rem; font-weight: 800; display: none;
+  align-items: flex-start; gap: 10px;
+  border: 2.5px solid #222; box-shadow: 4px 4px 0 #222;
+  animation: statusPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+@keyframes statusPop {
+  0%   { opacity: 0; transform: scale(0.85) rotate(-2deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.status-msg.success { background: #e8fdf5; color: #006645; display: flex; }
+.status-msg.error   { background: #fff0f0; color: #b00020; display: flex; }
+.status-icon { font-size: 24px; flex-shrink: 0; margin-top: 1px; }
+.status-msg.success .status-icon { color: #00a86b; }
+.status-msg.error   .status-icon { color: #e00030; }
+.status-body { display: flex; flex-direction: column; gap: 3px; }
+.status-main { font-family: 'Fredoka One', sans-serif; font-size: 1rem; }
+.status-sub  { font-size: 0.82rem; font-weight: 700; opacity: 0.8; line-height: 1.5; }
+
+/* ══════════════════════════════
+   CONFETTI (js-driven)
+══════════════════════════════ */
+.confetti-piece {
+  position: fixed;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 999;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { opacity: 1; transform: translateY(-20px) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+}
+
+/* ══════════════════════════════
+   FOOTER
+══════════════════════════════ */
+.footer {
+  text-align: center; margin-top: 1.5rem;
+  font-size: 0.78rem; color: #ccc; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  animation: fadeUp 0.6s ease 0.8s both;
+}
+@keyframes fadeUp {
+  0%   { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
 </style>
 </head>
 <body>
-<div class="grain"></div>
+
+<div class="bg-layer"></div>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+<div class="blob blob4"></div>
+<div class="blob blob5"></div>
+
 <div class="wrapper">
   <div class="header">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#7c6af7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
+    <div class="logo-badge">
+      <div class="logo-circle">&#9729;</div>
+      <span class="logo-text">Squish &amp; Send</span>
     </div>
-    <h1>Send us your files</h1>
-    <p class="subtitle">Drop anything here — we'll receive it securely.</p>
+    <h1>Drop your files<br><span class="c1">right</span> <span class="c2">here!</span></h1>
+    <p class="subtitle">We'll whisk them away safely &#x2728;</p>
+    <div class="dot-row">
+      <div class="bdot"></div><div class="bdot"></div><div class="bdot"></div>
+      <div class="bdot"></div><div class="bdot"></div>
+    </div>
   </div>
+
   <div class="card">
     <div class="drop-zone" id="dropZone">
       <input type="file" id="fileInput" multiple />
-      <div class="drop-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
-          <path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>
-        </svg>
+      <div class="cloud-wrap">
+        <div class="cloud-puff1"></div>
+        <div class="cloud-puff2"></div>
+        <div class="cloud-base"></div>
+        <div class="cloud-arrow">&#8679;</div>
       </div>
-      <p class="drop-label"><strong>Click to browse</strong> or drag &amp; drop<br>Any file type · Up to 50 MB each</p>
+      <p class="drop-title">Click or drag files here</p>
+      <p class="drop-sub">any type &middot; up to <strong>50 MB</strong></p>
+      <div class="type-pills">
+        <span class="tpill tp-a">&#128247; photos</span>
+        <span class="tpill tp-b">&#128196; docs</span>
+        <span class="tpill tp-c">&#127909; videos</span>
+        <span class="tpill tp-d">&#128230; zips</span>
+      </div>
     </div>
+
+    <div class="stats-row" id="statsRow">
+      <div class="stat-box sb-pink">
+        <span class="stat-ico">&#128196;</span>
+        <div><div class="stat-lbl">Files</div><div class="stat-num" id="statFiles">0</div></div>
+      </div>
+      <div class="stat-box sb-blue">
+        <span class="stat-ico">&#128190;</span>
+        <div><div class="stat-lbl">Total size</div><div class="stat-num" id="statSize">0 KB</div></div>
+      </div>
+    </div>
+
     <div class="file-list" id="fileList"></div>
-    <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar-fill" id="progressFill"></div></div>
-    <button class="submit-btn" id="uploadBtn" disabled onclick="uploadFiles()">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="17 8 12 3 7 8"/>
-        <line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-      <span id="btnText">Upload files</span>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <button class="upload-btn" id="uploadBtn" disabled onclick="uploadFiles()">
+      <span id="btnIcon">&#128640;</span>
+      <span id="btnText">Send it!</span>
       <div class="spinner" id="spinner"></div>
     </button>
+
     <div class="status-msg" id="statusMsg">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="statusIcon"></svg>
-      <span id="statusText"></span>
+      <span class="status-icon" id="statusIcon"></span>
+      <div class="status-body">
+        <div class="status-main" id="statusMain"></div>
+        <div class="status-sub"  id="statusSub"></div>
+      </div>
     </div>
   </div>
-  <p class="footer">Files are uploaded securely to private storage.</p>
+
+  <p class="footer">&#128274; Files go straight to private secure storage</p>
 </div>
+
 <script>
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxKAUU_sNooxj3SrOm5-oQ3NKU_e22Ec3MVBIpu3nz6GFIxoYWE-euxumr4E8VZNr_U/exec";
 
   let selectedFiles = [];
-  const dropZone = document.getElementById("dropZone");
-  const fileInput = document.getElementById("fileInput");
-  const fileList = document.getElementById("fileList");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const progressWrap = document.getElementById("progressWrap");
-  const progressFill = document.getElementById("progressFill");
-  const statusMsg = document.getElementById("statusMsg");
-  const spinner = document.getElementById("spinner");
-  const btnText = document.getElementById("btnText");
+  const dropZone    = document.getElementById("dropZone");
+  const fileInput   = document.getElementById("fileInput");
+  const fileList    = document.getElementById("fileList");
+  const uploadBtn   = document.getElementById("uploadBtn");
+  const progressWrap= document.getElementById("progressWrap");
+  const progressFill= document.getElementById("progressFill");
+  const statusMsg   = document.getElementById("statusMsg");
+  const spinner     = document.getElementById("spinner");
+  const btnText     = document.getElementById("btnText");
+  const btnIcon     = document.getElementById("btnIcon");
+  const statsRow    = document.getElementById("statsRow");
+
+  /* Spawn floating sparkles */
+  const sparkleChars = ["✦","✧","★","✿","♥","✪","◆"];
+  const sparkleColors = ["#ff6eb4","#ffd93d","#6bcbff","#c084fc","#6ee7b7","#ffb347"];
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement("div");
+    s.className = "sparkle";
+    s.textContent = sparkleChars[i % sparkleChars.length];
+    s.style.cssText = `
+      left:${Math.random()*100}%;
+      font-size:${10+Math.random()*14}px;
+      color:${sparkleColors[i%sparkleColors.length]};
+      animation-duration:${8+Math.random()*10}s;
+      animation-delay:${-Math.random()*12}s;
+    `;
+    document.body.appendChild(s);
+  }
+
+  /* Confetti burst */
+  function launchConfetti() {
+    const colors = ["#ff6eb4","#ffd93d","#6bcbff","#c084fc","#6ee7b7","#ffb347","#ff6b6b"];
+    for (let i = 0; i < 60; i++) {
+      const p = document.createElement("div");
+      p.className = "confetti-piece";
+      p.style.cssText = `
+        left:${20+Math.random()*60}%;
+        top:30%;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        width:${6+Math.random()*8}px;
+        height:${6+Math.random()*8}px;
+        border-radius:${Math.random()>0.5?"50%":"2px"};
+        animation-duration:${1.5+Math.random()*2}s;
+        animation-delay:${Math.random()*0.4}s;
+      `;
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 3500);
+    }
+  }
 
   fileInput.addEventListener("change", e => addFiles(e.target.files));
   dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
@@ -118,32 +610,48 @@
 
   function addFiles(files) {
     [...files].forEach(f => {
-      if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) selectedFiles.push(f);
+      if (!selectedFiles.find(x => x.name===f.name && x.size===f.size)) selectedFiles.push(f);
     });
     renderList();
   }
 
-  function removeFile(idx) { selectedFiles.splice(idx, 1); renderList(); }
+  function removeFile(idx) { selectedFiles.splice(idx,1); renderList(); }
 
-  function formatSize(bytes) {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / 1048576).toFixed(1) + " MB";
+  function formatSize(b) {
+    if (b<1024) return b+" B";
+    if (b<1048576) return (b/1024).toFixed(1)+" KB";
+    return (b/1048576).toFixed(1)+" MB";
+  }
+
+  function getIcon(f) {
+    const t = f.type||"";
+    if (t.startsWith("image/")) return ["fi-img","&#128247;"];
+    if (t.startsWith("video/")) return ["fi-vid","&#127909;"];
+    if (t.includes("pdf")||t.includes("word")||t.includes("text")) return ["fi-doc","&#128196;"];
+    if (t.includes("zip")||t.includes("compressed")||t.includes("tar")) return ["fi-zip","&#128230;"];
+    return ["fi-def","&#128193;"];
   }
 
   function renderList() {
     fileList.innerHTML = "";
-    selectedFiles.forEach((f, i) => {
-      const item = document.createElement("div");
-      item.className = "file-item";
-      item.innerHTML = `
-        <div class="file-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
-        <span class="file-name">${f.name}</span>
-        <span class="file-size">${formatSize(f.size)}</span>
-        <button class="remove-btn" onclick="removeFile(${i})" title="Remove"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
-      fileList.appendChild(item);
+    const total = selectedFiles.reduce((a,f)=>a+f.size,0);
+    statsRow.style.display = selectedFiles.length ? "flex" : "none";
+    document.getElementById("statFiles").textContent = selectedFiles.length;
+    document.getElementById("statSize").textContent  = formatSize(total);
+
+    selectedFiles.forEach((f,i) => {
+      const [cls,ico] = getIcon(f);
+      const d = document.createElement("div");
+      d.className = "file-item";
+      d.style.animationDelay = (i*0.05)+"s";
+      d.innerHTML = `<div class="ficon ${cls}"><span>${ico}</span></div>
+        <span class="fname">${f.name}</span>
+        <span class="fsize">${formatSize(f.size)}</span>
+        <button class="remove-btn" onclick="removeFile(${i})" title="Remove">&#x2715;</button>`;
+      fileList.appendChild(d);
     });
-    uploadBtn.disabled = selectedFiles.length === 0;
+
+    uploadBtn.disabled = !selectedFiles.length;
     statusMsg.className = "status-msg";
   }
 
@@ -151,66 +659,62 @@
     if (!selectedFiles.length) return;
     uploadBtn.disabled = true;
     spinner.style.display = "block";
-    btnText.textContent = "Uploading…";
+    btnIcon.style.display = "none";
+    btnText.textContent = "Sending...";
     progressWrap.style.display = "block";
     statusMsg.className = "status-msg";
 
-    let uploaded = 0;
-    let failed = 0;
-
-    for (let i = 0; i < selectedFiles.length; i++) {
+    let uploaded=0, failed=0;
+    for (let i=0; i<selectedFiles.length; i++) {
       const file = selectedFiles[i];
-      progressFill.style.width = Math.round((i / selectedFiles.length) * 100) + "%";
+      progressFill.style.width = Math.round((i/selectedFiles.length)*100)+"%";
       try {
-        const base64 = await toBase64(file);
-        // Use no-cors mode to avoid CORS errors with Google Apps Script
+        const b64 = await toBase64(file);
         await fetch(SCRIPT_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({ name: file.name, mimeType: file.type || "application/octet-stream", data: base64 })
+          method:"POST", mode:"no-cors",
+          body: JSON.stringify({name:file.name, mimeType:file.type||"application/octet-stream", data:b64})
         });
-        // no-cors responses are opaque — we can't read the response, so assume success
         uploaded++;
-      } catch (err) {
-        failed++;
-      }
+      } catch { failed++; }
     }
 
     progressFill.style.width = "100%";
     spinner.style.display = "none";
+    btnIcon.style.display = "";
+    btnText.textContent = "Send it!";
 
-    if (failed === 0) {
-      btnText.textContent = "Upload files";
-      showStatus("success", `${uploaded} file${uploaded !== 1 ? "s" : ""} uploaded successfully!`);
-      selectedFiles = [];
-      renderList();
-      fileInput.value = "";
+    if (failed===0) {
+      launchConfetti();
+      showStatus("success","&#9989;",
+        `${uploaded} file${uploaded!==1?"s":""} sent — woohoo! &#127881;`,
+        "Thank you for your Thesis Ahmad. Aap ko pastry treat du ga kisi din hehehe &#127859;"
+      );
+      selectedFiles=[]; renderList(); fileInput.value="";
     } else {
-      btnText.textContent = "Upload files";
-      showStatus("error", `${uploaded} uploaded, ${failed} failed. Please try again.`);
+      showStatus("error","&#10060;",
+        `${uploaded} sent, ${failed} failed.`,
+        "Kuch masla ho gaya! Please try again &#128533;"
+      );
     }
 
-    setTimeout(() => { progressWrap.style.display = "none"; progressFill.style.width = "0%"; }, 1500);
-    uploadBtn.disabled = selectedFiles.length === 0;
+    setTimeout(()=>{ progressWrap.style.display="none"; progressFill.style.width="0%"; },1500);
+    uploadBtn.disabled = !selectedFiles.length;
   }
 
   function toBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result.split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(",")[1]);
+      r.onerror=rej;
+      r.readAsDataURL(file);
     });
   }
 
-  function showStatus(type, msg) {
-    const iconPaths = {
-      success: '<polyline points="20 6 9 17 4 12"/>',
-      error: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
-    };
-    document.getElementById("statusIcon").innerHTML = iconPaths[type];
-    document.getElementById("statusText").textContent = msg;
-    statusMsg.className = "status-msg " + type;
+  function showStatus(type, icon, main, sub) {
+    document.getElementById("statusIcon").innerHTML = icon;
+    document.getElementById("statusMain").innerHTML = main;
+    document.getElementById("statusSub").innerHTML  = sub||"";
+    statusMsg.className = "status-msg "+type;
   }
 </script>
 </body>
