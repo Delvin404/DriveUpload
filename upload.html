@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Files</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0f;
+    --surface: #161617;
+    --surface2: #1e1e20;
+    --border: rgba(255,255,255,0.08);
+    --border-hover: rgba(255,255,255,0.18);
+    --accent: #7c6af7;
+    --accent-glow: rgba(124,106,247,0.15);
+    --text: #f0eff5;
+    --muted: #888790;
+    --success: #4ade80;
+    --error: #f87171;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-size: 128px;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    background: var(--accent-glow);
+    border: 1px solid rgba(124,106,247,0.3);
+    border-radius: 14px;
+    margin-bottom: 1.2rem;
+  }
+
+  .logo svg { width: 24px; height: 24px; }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 2rem;
+  }
+
+  .drop-zone {
+    border: 1.5px dashed var(--border-hover);
+    border-radius: 12px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 1rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .drop-icon svg { width: 20px; height: 20px; stroke: var(--muted); }
+
+  .drop-label {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .drop-label strong {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .file-list {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.65rem 0.85rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--accent-glow);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .file-icon svg { width: 13px; height: 13px; stroke: var(--accent); }
+
+  .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .file-size {
+    color: var(--muted);
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+  .remove-btn:hover { color: var(--error); }
+  .remove-btn svg { width: 14px; height: 14px; stroke: currentColor; }
+
+  .progress-bar-wrap {
+    margin-top: 0.5rem;
+    height: 3px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  .submit-btn {
+    margin-top: 1.25rem;
+    width: 100%;
+    padding: 0.85rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .submit-btn:hover { opacity: 0.9; }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .submit-btn svg { width: 16px; height: 16px; stroke: currentColor; }
+
+  .status-msg {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-msg.success {
+    background: rgba(74,222,128,0.1);
+    border: 1px solid rgba(74,222,128,0.25);
+    color: var(--success);
+    display: flex;
+  }
+
+  .status-msg.error {
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.25);
+    color: var(--error);
+    display: flex;
+  }
+
+  .status-msg svg { width: 16px; height: 16px; stroke: currentColor; flex-shrink: 0; }
+
+  .footer {
+    text-align: center;
+    margin-top: 1.75rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="wrapper">
+  <div class="header">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#7c6af7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <h1>Send us your files</h1>
+    <p class="subtitle">Drop anything here — we'll receive it securely.</p>
+  </div>
+
+  <div class="card">
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" multiple />
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+          <path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>
+        </svg>
+      </div>
+      <p class="drop-label"><strong>Click to browse</strong> or drag &amp; drop<br>Any file type · Up to 50 MB each</p>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+    <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+    <button class="submit-btn" id="uploadBtn" disabled onclick="uploadFiles()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <span id="btnText">Upload files</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+
+    <div class="status-msg" id="statusMsg">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="statusIcon"></svg>
+      <span id="statusText"></span>
+    </div>
+  </div>
+
+  <p class="footer">Files are uploaded securely to private storage.</p>
+</div>
+
+<script>
+  // ⚠️ PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+  const SCRIPT_URL = "https://drive.google.com/drive/folders/1tC0gsR71eV5a4AXO6YGS6Yq90pDMsnj1";
+
+  let selectedFiles = [];
+
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+  const fileList = document.getElementById("fileList");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const progressWrap = document.getElementById("progressWrap");
+  const progressFill = document.getElementById("progressFill");
+  const statusMsg = document.getElementById("statusMsg");
+  const spinner = document.getElementById("spinner");
+  const btnText = document.getElementById("btnText");
+
+  fileInput.addEventListener("change", e => addFiles(e.target.files));
+  dropZone.addEventListener("dragover", e => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", e => { e.preventDefault(); dropZone.classList.remove("dragover"); addFiles(e.dataTransfer.files); });
+
+  function addFiles(files) {
+    [...files].forEach(f => {
+      if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) selectedFiles.push(f);
+    });
+    renderList();
+  }
+
+  function removeFile(idx) {
+    selectedFiles.splice(idx, 1);
+    renderList();
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / 1048576).toFixed(1) + " MB";
+  }
+
+  function renderList() {
+    fileList.innerHTML = "";
+    selectedFiles.forEach((f, i) => {
+      const item = document.createElement("div");
+      item.className = "file-item";
+      item.innerHTML = `
+        <div class="file-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <span class="file-name">${f.name}</span>
+        <span class="file-size">${formatSize(f.size)}</span>
+        <button class="remove-btn" onclick="removeFile(${i})" title="Remove">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>`;
+      fileList.appendChild(item);
+    });
+    uploadBtn.disabled = selectedFiles.length === 0;
+    statusMsg.className = "status-msg";
+  }
+
+  async function uploadFiles() {
+    if (!selectedFiles.length) return;
+    if (SCRIPT_URL === "YOUR_APPS_SCRIPT_URL_HERE") {
+      showStatus("error", "Please paste your Apps Script URL into the SCRIPT_URL variable in the code.");
+      return;
+    }
+
+    uploadBtn.disabled = true;
+    spinner.style.display = "block";
+    btnText.textContent = "Uploading…";
+    progressWrap.style.display = "block";
+    statusMsg.className = "status-msg";
+
+    let uploaded = 0;
+    let failed = 0;
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      progressFill.style.width = Math.round((i / selectedFiles.length) * 100) + "%";
+      try {
+        const base64 = await toBase64(file);
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify({ name: file.name, mimeType: file.type || "application/octet-stream", data: base64 })
+        });
+        const json = await res.json();
+        if (json.status === "ok") uploaded++;
+        else failed++;
+      } catch { failed++; }
+    }
+
+    progressFill.style.width = "100%";
+    spinner.style.display = "none";
+
+    if (failed === 0) {
+      btnText.textContent = "Upload files";
+      showStatus("success", `${uploaded} file${uploaded !== 1 ? "s" : ""} uploaded successfully!`);
+      selectedFiles = [];
+      renderList();
+      fileInput.value = "";
+    } else {
+      btnText.textContent = "Upload files";
+      showStatus("error", `${uploaded} uploaded, ${failed} failed. Please try again.`);
+    }
+
+    setTimeout(() => { progressWrap.style.display = "none"; progressFill.style.width = "0%"; }, 1500);
+    uploadBtn.disabled = selectedFiles.length === 0;
+  }
+
+  function toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function showStatus(type, msg) {
+    const iconPaths = {
+      success: '<polyline points="20 6 9 17 4 12"/>',
+      error: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+    };
+    document.getElementById("statusIcon").innerHTML = iconPaths[type];
+    document.getElementById("statusText").textContent = msg;
+    statusMsg.className = "status-msg " + type;
+  }
+</script>
+</body>
+</html>
